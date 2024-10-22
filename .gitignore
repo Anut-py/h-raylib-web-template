@@ -1,0 +1,7 @@
+**/.vscode
+**/node_modules
+**/dist-newstyle
+**/public
+**/dist
+**/other
+src/raylib.js
