@@ -172,7 +172,7 @@ window.addEventListener("load", () => {
           const result = raylib[name](...params);
           if (returnSizeBytes === 0) return;
 
-          const ptr = raylib._malloc(returnSizeBytes);
+          const ptr = raylib._MemAlloc_(returnSizeBytes);
           const signed = returnType === ParamTypes.SIGNED_INT;
           if (returnSizeBytes === 1)
             (signed ? heaps.HEAP8 : heaps.HEAPU8)[ptr] = result;
@@ -184,6 +184,12 @@ window.addEventListener("load", () => {
               : signed
               ? heaps.HEAP32
               : heaps.HEAPU32)[ptr / 4] = result;
+          else if (returnSizeBytes === 8)
+            (returnType === ParamTypes.FLOAT
+              ? heaps.HEAPF64
+              : signed
+              ? heaps.HEAP64
+              : heaps.HEAPU64)[ptr / 4] = result;
           else console.log("got unknown return size:", returnSizeBytes);
 
           return ptr;
@@ -192,7 +198,7 @@ window.addEventListener("load", () => {
         // directly freed in haskell (with `Foreign.Marshal.Alloc.free`), so
         // this function is called from haskell instead.
         free: (ptr: number) => {
-          raylib._free(ptr);
+          raylib._MemFree_(ptr);
         },
         memory: memory,
       },
@@ -203,13 +209,15 @@ window.addEventListener("load", () => {
     inst.exports.hs_init(0, 0); // This must be called before calling any exported functions
 
     let state = inst.exports.startup(); // A pointer to the current state of the program
-    raylib.setMainLoop(() => {
+    const mainLoop = () => {
       if (inst.exports.shouldClose(state) === 1) {
         inst.exports.teardown(state);
         raylib.pauseMainLoop();
         return;
       }
       state = inst.exports.mainLoop(state);
-    });
+      raylib.requestAnimationFrame(mainLoop);
+    };
+    raylib.setMainLoop(mainLoop);
   })().catch((e) => console.log("got error:", e));
 });

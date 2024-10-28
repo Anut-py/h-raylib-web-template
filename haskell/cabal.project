@@ -1,6 +1,1 @@
 packages: *.cabal
-
-optimization: 2
-
-package h-raylib
-  flags: -detect-platform +platform-web

@@ -6,6 +6,8 @@ Based on https://github.com/Anut-py/ghc-web-test
 
 To run this project you will need to have installed Nix, Cabal, Emscripten, and NodeJS
 
+**IMPORTANT: This does not work with recent emscripten versions, it does work with emscripten 3.1.45**
+
 ## Running the code
 
 ### Compile the Haskell code

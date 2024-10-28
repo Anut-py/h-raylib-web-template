@@ -1,60 +1,46 @@
-{-# OPTIONS -Wall -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use newtype instead of data" #-}
-module Program (startup, mainLoop, shouldClose, teardown) where
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TemplateHaskell #-}
 
-import Native (jslog)
-import Raylib
-  ( beginDrawing,
-    clearBackground,
-    closeWindow,
-    drawFPS,
-    drawText,
-    endDrawing,
-    getScreenHeight,
-    initWindow,
-    setTargetFPS, isKeyDown, isMouseButtonPressed,
-  )
+module Program where
 
-data ProgramState = ProgramState {
-  clicks :: Int
-}
+import Raylib.Core (initWindowUnmanaged, setTargetFPS, windowShouldClose, closeWindow, clearBackground, disableCursor)
+import Raylib.Core.Camera (updateCamera)
+import Raylib.Core.Models (drawCircle3D, drawCubeWiresV, drawLine3D)
+import Raylib.Core.Text (drawFPS)
+import Raylib.Types (Camera3D (Camera3D), CameraMode (CameraModeFirstPerson), CameraProjection (CameraPerspective), pattern Vector3)
+import Raylib.Util (drawing, mode3D, raylibApplication)
+import Raylib.Util.Colors (black, white)
 
--- These are the main rendering functions of the program
-startup :: IO ProgramState
+startup :: IO Camera3D
 startup = do
-  initWindow 600 400 "raylib example - basic window"
+  initWindowUnmanaged 600 450 "raylib [core] example - first person camera"
   setTargetFPS 60
-  height <- getScreenHeight
-  jslog ("screen height: " ++ show height)
-  jslog "Window initialized through Haskell"
-  return $ ProgramState {
-    clicks = 0
-  }
+  disableCursor
 
-mainLoop :: ProgramState -> IO ProgramState
-mainLoop state = do
-  pressed <- isMouseButtonPressed 0
+  return $ Camera3D (Vector3 0 0 0) (Vector3 2 0 1) (Vector3 0 1 0) 70 CameraPerspective
 
-  beginDrawing
-  clearBackground 0xffd9b682 -- blue-ish color in hex in (a, b, g, r) form (this is a workaround to avoid having to implement the `Color` struct)
-  drawFPS 10 10
-  drawText "Hello from haskell!" 10 40 20 0xff000000
-  drawText "Press [ESC] to close this" 10 70 20 0xff000000
-  drawText ("This window has been clicked " ++ show (clicks state) ++ " times") 10 100 20 0xff000000
-  endDrawing
+mainLoop :: Camera3D -> IO Camera3D
+mainLoop camera =
+  drawing
+    ( do
+        clearBackground black
+        drawFPS 10 20
 
-  -- This will not show in the JS console. Usually printing to `stdout` would
-  -- cause an error because browser_wasi_shim does not support stdout, but I
-  -- used a patch to prevent it (see wasi_patch.ts and `poll_oneoff` in index.ts)
-  putStrLn "test"
+        mode3D
+          camera
+          ( do
+              drawCircle3D (Vector3 2 0 1) 2 (Vector3 0 0 0) 0 white
+              drawLine3D (Vector3 3 (-1) 1) (Vector3 1 1 1) white
+              drawLine3D (Vector3 4 2 2) (Vector3 1 (-1) 1) white
+              drawCubeWiresV (Vector3 (-2) 0 0) (Vector3 1 1 1) white
+          )
+    )
+    >> updateCamera camera CameraModeFirstPerson
 
-  return $ if pressed then state { clicks = clicks state + 1 } else state
+shouldClose :: Camera3D -> IO Bool
+shouldClose _ = windowShouldClose
 
-shouldClose :: ProgramState -> IO Bool
-shouldClose _ = isKeyDown 256
+teardown :: Camera3D -> IO ()
+teardown _ = closeWindow Nothing
 
-teardown :: ProgramState -> IO ()
-teardown _ = do
-  closeWindow
-  jslog "Window closed through Haskell"
-  return ()
+raylibApplication 'startup 'mainLoop 'shouldClose 'teardown

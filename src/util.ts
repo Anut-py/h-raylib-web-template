@@ -23,8 +23,8 @@ export function readArrayNonuniform(
   ptr: number,
   sizes: number[],
   types: number[]
-): number[] {
-  const items: number[] = [];
+): (number | bigint)[] {
+  const items: (number | bigint)[] = [];
   let curPtr, size, type, signed;
   for (let i = 0; i < sizes.length; i++) {
     size = sizes[i];
@@ -43,6 +43,14 @@ export function readArrayNonuniform(
           : signed
           ? heaps.HEAP32
           : heaps.HEAPU32)[curPtr / 4]
+      );
+    else if (size === 8)
+      items.push(
+        (type === ParamTypes.FLOAT
+          ? heaps.HEAPF64
+          : signed
+          ? heaps.HEAP64
+          : heaps.HEAPU64)[curPtr / 4]
       );
     else console.log("got unknown size", size);
     ptr += 4;
