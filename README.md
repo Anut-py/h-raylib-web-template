@@ -15,7 +15,7 @@ To run this project you will need to have installed Nix, Cabal, Emscripten, and 
 Run the following command (you will need to do this in WSL if you're on Windows):
 
 ```sh
-nix shell https://gitlab.haskell.org/ghc/ghc-wasm-meta/-/archive/master/ghc-wasm-meta-master.tar.gz --extra-experimental-features nix-command --extra-experimental-features flakes
+nix shell 'gitlab:haskell-wasm/ghc-wasm-meta?host=gitlab.haskell.org' --extra-experimental-features nix-command --extra-experimental-features flakes
 ```
 
 This will enter a nix flake with the GHC to WASM compiler available. Now run

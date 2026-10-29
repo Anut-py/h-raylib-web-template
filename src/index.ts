@@ -205,19 +205,26 @@ window.addEventListener("load", () => {
     })) as any;
     inst = { ...inst, exports: { ...inst.exports, memory } }; // WASI requires the module to export memory
 
+    let targetFPS = 0;
+    raylib.wasmExports.SetTargetFPS_ = (fps: number) => {
+        targetFPS = fps;
+    };
+
     wasi.initialize(inst);
     inst.exports.hs_init(0, 0); // This must be called before calling any exported functions
 
     let state = inst.exports.startup(); // A pointer to the current state of the program
+    let lastTime = performance.now();
     const mainLoop = () => {
-      if (inst.exports.shouldClose(state) === 1) {
-        inst.exports.teardown(state);
-        raylib.pauseMainLoop();
-        return;
+      const now = performance.now();
+      const delta = now - lastTime;
+      if (targetFPS === 0) state = inst.exports.mainLoop(state);
+      else if (delta >= 1000 / targetFPS) {
+        state = inst.exports.mainLoop(state);
+        lastTime = now;
       }
-      state = inst.exports.mainLoop(state);
-      raylib.requestAnimationFrame(mainLoop);
+      window.requestAnimationFrame(mainLoop);
     };
-    raylib.setMainLoop(mainLoop);
+    window.requestAnimationFrame(mainLoop);
   })().catch((e) => console.log("got error:", e));
 });
